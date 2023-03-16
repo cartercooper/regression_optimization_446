@@ -1,5 +1,8 @@
-#define DEHLI_RAW 4
-const double dehli_raw[10000][4] =
+#define DEHLI_RAW_FEATURES 4
+
+//humidity, pressure, temperature, -> dew point
+
+double dehli[10000][4] =
 {
 {  59.0,1017.0,  15.0,   7.0},
 {  63.0,1017.0,  14.0,   7.0},

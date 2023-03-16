@@ -1,2 +1,0 @@
-#define SAMPLE_SIZE 10000
-

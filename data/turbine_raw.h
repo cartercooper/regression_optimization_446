@@ -1,5 +1,8 @@
-#define TURBINE_RAW 6
-const double turbine_raw[10000][6] =
+#define TURBINE_RAW_FEATURES 6
+
+//blade pitch, generator rpm, rotor rpm, winddir, windspeed, -> active power
+
+double turbine[10000][6] =
 {
 {   0.325281,1030.987678,   9.246708, 166.000000,   4.218075, 164.514545},
 {  -0.003198,1033.234140,   9.268132, 181.666667,   4.301755, 203.509809},
