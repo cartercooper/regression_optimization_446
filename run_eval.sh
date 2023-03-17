@@ -18,6 +18,6 @@ echo "#define DATASET_FEATURES $num_features" >> src/def.h
 echo "#define POLY_DEGREE $poly_degree" >> src/def.h
 
 #compile and run
-gcc -o "eval" "src/main.c" -lm
+gcc -o "eval.out" "src/main.c" -lm
 
-./eval
+./eval.out
