@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
-#include "../data/dehli_raw.h"
-#include "../data/turbine_raw.h"
+#include "../data/dehli.h"
+#include "../data/turbine.h"
 
 #include "def.h"
 

@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 
-DATA = "dehli_raw"
+DATA = "dehli"
 #https://www.kaggle.com/datasets/mahirkukreja/delhi-weather-data
 
-DATA = "turbine_raw"
+# DATA = "turbine"
 #https://www.kaggle.com/datasets/theforcecoder/wind-power-forecasting
 
 
@@ -17,7 +17,7 @@ f = open("data/"+ DATA +".h", "w")
 
 f.write("#define " + DATA.upper() + " " + str(cols) + "\n")
 
-f.write("const double " + DATA + "[5000][" + str(len(raw_data.columns)) + "] =\n{\n")
+f.write("double " + DATA + "[5000][" + str(len(raw_data.columns)) + "] =\n{\n")
 
 for index, data in raw_data.iterrows():
     
