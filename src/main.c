@@ -28,8 +28,6 @@ int main(void)
 	printf("POLYNOMIAL REGRESSION: DEGREE %d\n", POLY_DEGREE);
 	printf("TIME ELAPSED: %lu\n", mtime);
 	printf("RMSE: %.2f\n", rmse);
-
-	while(1);
 }
 
 double polynomial_regression_train_and_test(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree)
@@ -78,15 +76,18 @@ double polynomial_regression_train_and_test(double data[SAMPLE_SIZE][DATASET_FEA
 	// Solve the system of equations to get coefficients
 	double *coefficients = malloc((degree + 1) * sizeof(double));
 	for (int i = 0; i <= degree; i++)
-	for (int j = i + 1; j <= degree; j++)
-	{
-		double ratio = x_transpose_x[i][j] / x_transpose_x[i][i];
-		for (int k = i; k <= degree; k++)
-		{
-			x_transpose_x[j][k] -= ratio * x_transpose_x[i][k];
-		}
-		x_transpose_y[j] -= ratio * x_transpose_y[i];
-	}
+    {
+        for (int j = i + 1; j <= degree; j++)
+        {
+            double ratio = x_transpose_x[i][j] / x_transpose_x[i][i];
+            for (int k = i; k <= degree; k++)
+            {
+                x_transpose_x[j][k] -= ratio * x_transpose_x[i][k];
+            }
+            x_transpose_y[j] -= ratio * x_transpose_y[i];
+        }
+    }
+	
 
 	for (int i = degree; i >= 0; i--)
 	{
