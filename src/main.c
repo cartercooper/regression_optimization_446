@@ -21,12 +21,13 @@ int main(void)
 
 	rmse = polynomial_regression_train_and_test(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
 
-	//call system clock again and
+	//call system clock again and calculate difference, in microseconds
 	gettimeofday(&end, NULL);
 	secs  = end.tv_sec  - start.tv_sec;
 	usecs = end.tv_usec - start.tv_usec;
 	mtime = ((secs) * 1000000 + usecs) + 0.5;
 
+	//output metrics to standard output
 	printf("POLYNOMIAL REGRESSION: DEGREE %d\n", POLY_DEGREE);
 	printf("TIME ELAPSED: %lu\n", mtime);
 	printf("RMSE: %.2f\n", rmse);
