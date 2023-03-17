@@ -4,11 +4,11 @@ import pandas as pd
 DATA = "dehli_raw"
 #https://www.kaggle.com/datasets/mahirkukreja/delhi-weather-data
 
-# DATA = "turbine_raw"
+DATA = "turbine_raw"
 #https://www.kaggle.com/datasets/theforcecoder/wind-power-forecasting
 
 
-raw_data = pd.read_csv("data/"+ DATA +".csv", header=None).tail(10000)
+raw_data = pd.read_csv("data/"+ DATA +".csv", header=None).tail(5000)
 
 cols = len(raw_data.columns)
 rows = 10000
@@ -17,7 +17,7 @@ f = open("data/"+ DATA +".h", "w")
 
 f.write("#define " + DATA.upper() + " " + str(cols) + "\n")
 
-f.write("const double " + DATA + "[10000][" + str(len(raw_data.columns)) + "] =\n{\n")
+f.write("const double " + DATA + "[5000][" + str(len(raw_data.columns)) + "] =\n{\n")
 
 for index, data in raw_data.iterrows():
     
