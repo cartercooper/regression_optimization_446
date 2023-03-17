@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
-#include "../data/dehli.h"
+#include "../data/delhi.h"
 #include "../data/turbine.h"
 
 #include "def.h"

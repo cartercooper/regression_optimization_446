@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-DATA = "dehli"
+DATA = "delhi"
 #https://www.kaggle.com/datasets/mahirkukreja/delhi-weather-data
 
 # DATA = "turbine"

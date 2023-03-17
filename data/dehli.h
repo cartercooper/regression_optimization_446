@@ -1,5 +1,5 @@
-#define DEHLI 4
-double dehli[5000][4] =
+#define delhi 4
+double delhi[5000][4] =
 {
 {  78.0,1009.0,  21.0,  17.0},
 {  73.0,1009.0,  21.0,  16.0},
