@@ -8,6 +8,7 @@
 #include "def.h"
 
 double polynomial_regression_train_and_test(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree);
+double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree);
 
 
 int main(void)
@@ -19,7 +20,8 @@ int main(void)
 	//clock function that calls the system clock
 	gettimeofday(&start, NULL);
 
-	rmse = polynomial_regression_train_and_test(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
+	// rmse = polynomial_regression_train_and_test(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
+	rmse = polynomial_regression_train_and_test_fast(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
 
 	//call system clock again and calculate difference, in microseconds
 	gettimeofday(&end, NULL);
@@ -154,4 +156,120 @@ double polynomial_regression_train_and_test(double data[SAMPLE_SIZE][DATASET_FEA
 	free(coefficients);
 
 	return rmse;
+}
+
+double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree)
+{
+    // Extract features and labels from input matrix
+    double *x_mem = malloc(sample_size * (degree + 1) * sizeof(double));
+    double **x = malloc(sample_size * sizeof(double *));
+    double *y = malloc(sample_size * sizeof(double));
+
+    for (int i = 0; i < sample_size; i++)
+    {
+        x[i] = &x_mem[i * (degree + 1)];
+
+        x[i][0] = 1.0;
+        for (int j = 1; j <= degree; j++)
+        {
+            x[i][j] = x[i][j - 1] * data[i][0];
+        }
+
+        y[i] = data[i][feature_size - 1];
+    }
+
+    // Compute x transpose matrix and x transpose times x matrix
+    double *x_transpose_mem = malloc((degree + 1) * sample_size * sizeof(double));
+    double **x_transpose = malloc((degree + 1) * sizeof(double *));
+    double *x_transpose_x_mem = malloc((degree + 1) * (degree + 1) * sizeof(double));
+    double **x_transpose_x = malloc((degree + 1) * sizeof(double *));
+    double *x_transpose_y = malloc((degree + 1) * sizeof(double));
+
+    for (int i = 0; i <= degree; i++)
+    {
+        x_transpose[i] = &x_transpose_mem[i * sample_size];
+        x_transpose_x[i] = &x_transpose_x_mem[i * (degree + 1)];
+
+        for (int j = 0; j < sample_size; j++)
+        {
+            x_transpose[i][j] = x[j][i];
+        }
+
+        for (int j = 0; j <= degree; j++)
+        {
+            x_transpose_x[i][j] = 0;
+
+            for (int k = 0; k < sample_size; k++)
+            {
+                x_transpose_x[i][j] += x_transpose[i][k] * x[k][j];
+            }
+        }
+
+        x_transpose_y[i] = 0;
+
+        for (int j = 0; j < sample_size; j++)
+        {
+            x_transpose_y[i] += x_transpose[i][j] * y[j];
+        }
+    }
+
+    // Solve the system of equations to get coefficients
+    double *coefficients = malloc((degree + 1) * sizeof(double));
+
+    for (int i = 0; i <= degree; i++)
+    {
+        for (int j = i + 1; j <= degree; j++)
+        {
+            double ratio = x_transpose_x[i][j] / x_transpose_x[i][i];
+
+            for (int k = i; k <= degree; k++)
+            {
+                x_transpose_x[j][k] -= ratio * x_transpose_x[i][k];
+            }
+
+            x_transpose_y[j] -= ratio * x_transpose_y[i];
+        }
+    }
+
+    for (int i = degree; i >= 0; i--)
+    {
+        double sum = 0;
+
+        for (int j = i + 1; j <= degree; j++)
+        {
+            sum += x_transpose_x[i][j] * coefficients[j];
+        }
+
+        coefficients[i] = (x_transpose_y[i] - sum) / x_transpose_x[i][i];
+    }
+
+    // Calculate RMSE on training data
+    double rmse = 0;
+
+    for (int i = 0; i < sample_size; i++)
+    {
+        double y_pred = 0;
+
+        for (int j = 0; j <= degree; j++)
+        {
+            y_pred += coefficients[j] * x[i][j];
+        }
+
+        rmse += (y_pred - data[i][feature_size - 1]) * (y_pred - data[i][feature_size - 1]);
+    }
+
+    rmse = sqrt(rmse / sample_size);
+
+    // Free memory allocated for arrays
+    free(x);
+    free(x_mem);
+    free(y);
+    free(x_transpose);
+    free(x_transpose_mem);
+    free(x_transpose_x);
+    free(x_transpose_x_mem);
+    free(x_transpose_y);
+    free(coefficients);
+
+    return rmse;
 }
