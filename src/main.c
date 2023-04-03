@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include <math.h>
-#include "../data/dehli.h"
+#include "../data/delhi.h"
 #include "../data/turbine.h"
 
 #include "def.h"
 
 double polynomial_regression_train_and_test(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree);
-double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree);
+double polynomial_regression_train_and_test_optimized(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree);
+void normalize_features(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size);
 
 
 int main(void)
@@ -21,7 +23,8 @@ int main(void)
 	gettimeofday(&start, NULL);
 
 	// rmse = polynomial_regression_train_and_test(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
-	rmse = polynomial_regression_train_and_test_fast(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
+	rmse = polynomial_regression_train_and_test_optimized(DATASET, DATASET_FEATURES, SAMPLE_SIZE, POLY_DEGREE);
+
 
 	//call system clock again and calculate difference, in microseconds
 	gettimeofday(&end, NULL);
@@ -32,170 +35,63 @@ int main(void)
 	//output metrics to standard output
 	printf("POLYNOMIAL REGRESSION: DEGREE %d\n", POLY_DEGREE);
 	printf("TIME ELAPSED: %lu\n", mtime);
-	printf("RMSE: %.2f\n", rmse);
+	printf("RMSE: %.5f\n", rmse);
 }
 
 double polynomial_regression_train_and_test(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree)
 {
-	// Extract features and labels from input matrix
-	double **x = malloc(sample_size * sizeof(double *));
-	double *y = malloc(sample_size * sizeof(double));
+    // Calculate the number of terms for the polynomial regression
+    int NUM_TERMS = (int)pow(degree + 1, feature_size - 1);
 
-	for (int i = 0; i < sample_size; i++)
-	{
-		x[i] = malloc((degree + 1) * sizeof(double));
-
-		for (int j = 0; j <= degree; j++)
-		{
-			x[i][j] = pow(data[i][0], j);
-		}
-
-		y[i] = data[i][feature_size - 1];
-	}
-
-	// Compute x transpose matrix and x transpose times x matrix
-	double **x_transpose = malloc((degree + 1) * sizeof(double *));
-	double **x_transpose_x = malloc((degree + 1) * sizeof(double *));
-	double *x_transpose_y = malloc((degree + 1) * sizeof(double));
-	double *temp = malloc((degree + 1) * sizeof(double));
-
-	for (int i = 0; i <= degree; i++)
-	{
-		x_transpose[i] = malloc(sample_size * sizeof(double));
-		x_transpose_x[i] = malloc((degree + 1) * sizeof(double));
-
-		for (int j = 0; j < sample_size; j++)
-		{
-			x_transpose[i][j] = x[j][i];
-		}
-
-		for (int j = 0; j <= degree; j++)
-		{
-			x_transpose_x[i][j] = 0;
-
-			for (int k = 0; k < sample_size; k++)
-			{
-			  x_transpose_x[i][j] += x_transpose[i][k] * x[k][j];
-			}
-		}
-
-		x_transpose_y[i] = 0;
-
-		for (int j = 0; j < sample_size; j++)
-		{
-			x_transpose_y[i] += x_transpose[i][j] * y[j];
-		}
-	}
-
-	// Solve the system of equations to get coefficients
-	double *coefficients = malloc((degree + 1) * sizeof(double));
-
-	for (int i = 0; i <= degree; i++)
-	{
-		for (int j = i + 1; j <= degree; j++)
-		{
-			double ratio = x_transpose_x[i][j] / x_transpose_x[i][i];
-
-			for (int k = i; k <= degree; k++)
-			{
-				x_transpose_x[j][k] -= ratio * x_transpose_x[i][k];
-			}
-
-			x_transpose_y[j] -= ratio * x_transpose_y[i];
-		}
-	}
-
-	for (int i = degree; i >= 0; i--)
-	{
-		double sum = 0;
-
-		for (int j = i + 1; j <= degree; j++)
-		{
-			sum += x_transpose_x[i][j] * coefficients[j];
-		}
-
-		coefficients[i] = (x_transpose_y[i] - sum) / x_transpose_x[i][i];
-	}
-
-	// Calculate RMSE on training data
-	double rmse = 0;
-
-	for (int i = 0; i < sample_size; i++)
-	{
-		double y_pred = 0;
-
-		for (int j = 0; j <= degree; j++)
-		{
-			y_pred += coefficients[j] * pow(data[i][0], j);
-		}
-
-		rmse += pow(y_pred - data[i][feature_size - 1], 2);
-	}
-
-	rmse = sqrt(rmse / sample_size);
-
-	// Free memory allocated for arrays
-	for (int i = 0; i < sample_size; i++)
-	{
-		free(x[i]);
-	}
-
-	free(x);
-	free(y);
-
-	for (int i = 0; i <= degree; i++)
-	{
-		free(x_transpose[i]);
-		free(x_transpose_x[i]);
-	}
-	
-	free(x_transpose);
-	free(x_transpose_x);
-	free(x_transpose_y);
-	free(temp);
-	free(coefficients);
-
-	return rmse;
-}
-
-double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree)
-{
-    // Extract features and labels from input matrix
-    double *x_mem = malloc(sample_size * (degree + 1) * sizeof(double));
+    // Allocate memory for the feature matrix and label array
     double **x = malloc(sample_size * sizeof(double *));
     double *y = malloc(sample_size * sizeof(double));
 
+    // Populate feature matrix and label array
     for (int i = 0; i < sample_size; i++)
     {
-        x[i] = &x_mem[i * (degree + 1)];
+        x[i] = malloc(NUM_TERMS * sizeof(double));
+        int index = 0;
 
-        x[i][0] = 1.0;
-        for (int j = 1; j <= degree; j++)
+        for (int comb = 0; comb < NUM_TERMS; comb++)
         {
-            x[i][j] = x[i][j - 1] * data[i][0];
+            int temp_comb = comb;
+            double value = 1;
+
+            // Calculate the product of features raised to their respective powers
+            for (int feature = 0; feature < feature_size - 1; feature++)
+            {
+                int power = temp_comb % (degree + 1);
+                value *= pow(data[i][feature], power);
+                temp_comb /= (degree + 1);
+            }
+
+            x[i][index++] = value;
         }
 
+        // Store label value
         y[i] = data[i][feature_size - 1];
     }
 
+    // Allocate memory for x transpose matrix, x transpose times x matrix, and x transpose times y matrix
+    double **x_transpose = malloc(NUM_TERMS * sizeof(double *));
+    double **x_transpose_x = malloc(NUM_TERMS * sizeof(double *));
+    double *x_transpose_y = malloc(NUM_TERMS * sizeof(double));
+
     // Compute x transpose matrix and x transpose times x matrix
-    double *x_transpose_mem = malloc((degree + 1) * sample_size * sizeof(double));
-    double **x_transpose = malloc((degree + 1) * sizeof(double *));
-    double *x_transpose_x_mem = malloc((degree + 1) * (degree + 1) * sizeof(double));
-    double **x_transpose_x = malloc((degree + 1) * sizeof(double *));
-    double *x_transpose_y = malloc((degree + 1) * sizeof(double));
-
-    for (int i = 0; i <= degree; i++)
+    for (int i = 0; i < NUM_TERMS; i++)
     {
-        x_transpose[i] = &x_transpose_mem[i * sample_size];
-        x_transpose_x[i] = &x_transpose_x_mem[i * (degree + 1)];
+        x_transpose[i] = malloc(sample_size * sizeof(double));
+        x_transpose_x[i] = malloc(NUM_TERMS * sizeof(double));
 
+        // Compute x transpose matrix
         for (int j = 0; j < sample_size; j++)
         {
             x_transpose[i][j] = x[j][i];
         }
 
-        for (int j = 0; j <= degree; j++)
+        // Compute x transpose times x matrix
+        for (int j = 0; j < NUM_TERMS; j++)
         {
             x_transpose_x[i][j] = 0;
 
@@ -205,6 +101,7 @@ double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASE
             }
         }
 
+        // Compute x transpose times y matrix
         x_transpose_y[i] = 0;
 
         for (int j = 0; j < sample_size; j++)
@@ -213,29 +110,32 @@ double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASE
         }
     }
 
-    // Solve the system of equations to get coefficients
-    double *coefficients = malloc((degree + 1) * sizeof(double));
+    // Allocate memory for coefficients
+    double *coefficients = malloc(NUM_TERMS * sizeof(double));
 
-    for (int i = 0; i <= degree; i++)
+    // Gaussian elimination to solve the system of equations
+    for (int i = 0; i < NUM_TERMS; i++)
     {
-        for (int j = i + 1; j <= degree; j++)
+        for (int j = i + 1; j < NUM_TERMS; j++)
         {
-            double ratio = x_transpose_x[i][j] / x_transpose_x[i][i];
+            double ratio = x_transpose_x[j][i] / x_transpose_x[i][i];
 
-            for (int k = i; k <= degree; k++)
+            for (int k = i; k < NUM_TERMS; k++)
             {
                 x_transpose_x[j][k] -= ratio * x_transpose_x[i][k];
             }
 
             x_transpose_y[j] -= ratio * x_transpose_y[i];
-        }
+		}
+
     }
 
-    for (int i = degree; i >= 0; i--)
+    // Back-substitution to find the coefficients
+    for (int i = NUM_TERMS - 1; i >= 0; i--)
     {
         double sum = 0;
 
-        for (int j = i + 1; j <= degree; j++)
+        for (int j = i + 1; j < NUM_TERMS; j++)
         {
             sum += x_transpose_x[i][j] * coefficients[j];
         }
@@ -250,7 +150,167 @@ double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASE
     {
         double y_pred = 0;
 
-        for (int j = 0; j <= degree; j++)
+        for (int j = 0; j < NUM_TERMS; j++)
+        {
+            y_pred += coefficients[j] * x[i][j];
+        }
+
+        rmse += pow(y_pred - data[i][feature_size - 1], 2);
+    }
+
+    rmse = sqrt(rmse / sample_size);
+
+    // Free memory allocated for arrays
+    for (int i = 0; i < sample_size; i++)
+    {
+        free(x[i]);
+    }
+
+    free(x);
+    free(y);
+
+    for (int i = 0; i < NUM_TERMS; i++)
+    {
+        free(x_transpose[i]);
+        free(x_transpose_x[i]);
+    }
+
+    free(x_transpose);
+    free(x_transpose_x);
+    free(x_transpose_y);
+    free(coefficients);
+
+    return rmse;
+}
+
+double polynomial_regression_train_and_test_optimized(double data[SAMPLE_SIZE][DATASET_FEATURES], int feature_size, int sample_size, int degree)
+{
+    // Calculate the number of terms for the polynomial regression
+    int NUM_TERMS = 1;
+    for (int i = 0; i < feature_size - 1; i++)
+	{
+		NUM_TERMS *= (degree + 1);
+	}
+        
+    // Allocate memory for the feature matrix and label array
+    double **x = malloc(sample_size * sizeof(double *));
+    double *y = malloc(sample_size * sizeof(double));
+
+    // Populate feature matrix and label array
+    for (int i = 0; i < sample_size; i++)
+    {
+        x[i] = malloc(NUM_TERMS * sizeof(double));
+        int index = 0;
+
+        for (int comb = 0; comb < NUM_TERMS; comb++)
+        {
+            int temp_comb = comb;
+            double value = 1;
+
+            // Calculate the product of features raised to their respective powers
+            for (int feature = 0; feature < feature_size - 1; feature++)
+            {
+                int power = temp_comb % (degree + 1);
+                double temp = 1;
+
+                // Replace pow with multiplication loop
+                for (int p = 0; p < power; p++)
+                {
+                    temp *= data[i][feature];
+                }
+
+                value *= temp;
+                temp_comb /= (degree + 1);
+            }
+
+            x[i][index++] = value;
+        }
+
+        // Store label value
+        y[i] = data[i][feature_size - 1];
+    }
+
+    // Allocate memory for x transpose matrix, x transpose times x matrix, and x transpose times y matrix
+    double **x_transpose = malloc(NUM_TERMS * sizeof(double *));
+    double **x_transpose_x = malloc(NUM_TERMS * sizeof(double *));
+    double *x_transpose_y = malloc(NUM_TERMS * sizeof(double));
+
+    // Compute x transpose matrix and x transpose times x matrix
+    for (int i = 0; i < NUM_TERMS; i++)
+    {
+        x_transpose[i] = malloc(sample_size * sizeof(double));
+        x_transpose_x[i] = malloc(NUM_TERMS * sizeof(double));
+
+        // Compute x transpose matrix
+        for (int j = 0; j < sample_size; j++)
+        {
+            x_transpose[i][j] = x[j][i];
+        }
+
+        // Compute x transpose times x matrix
+        for (int j = 0; j < NUM_TERMS; j++)
+        {
+            double sum = 0;
+
+            for (int k = 0; k < sample_size; k++)
+            {
+                sum += x_transpose[i][k] * x[k][j];
+            }
+
+            x_transpose_x[i][j] = sum;
+        }
+
+        // Compute x transpose times y matrix
+        double sum = 0;
+
+        for (int j = 0; j < sample_size; j++)
+        {
+            sum += x_transpose[i][j] * y[j];
+        }
+
+        x_transpose_y[i] = sum;
+    }
+
+    // Allocate memory for coefficients
+    double *coefficients = malloc(NUM_TERMS * sizeof(double));
+
+    // Gaussian elimination to solve the system of equations
+    for (int i = 0; i < NUM_TERMS; i++)
+    {
+         for (int j = i + 1; j < NUM_TERMS; j++)
+        {
+            double ratio = x_transpose_x[j][i] / x_transpose_x[i][i];
+
+            for (int k = i; k < NUM_TERMS; k++)
+            {
+                x_transpose_x[j][k] -= ratio * x_transpose_x[i][k];
+            }
+
+            x_transpose_y[j] -= ratio * x_transpose_y[i];
+        }
+    }
+
+    // Back-substitution to find the coefficients
+    for (int i = NUM_TERMS - 1; i >= 0; i--)
+    {
+        double sum = 0;
+
+        for (int j = i + 1; j < NUM_TERMS; j++)
+        {
+            sum += x_transpose_x[i][j] * coefficients[j];
+        }
+
+        coefficients[i] = (x_transpose_y[i] - sum) / x_transpose_x[i][i];
+    }
+
+    // Calculate RMSE on training data
+    double rmse = 0;
+
+    for (int i = 0; i < sample_size; i++)
+    {
+        double y_pred = 0;
+
+        for (int j = 0; j < NUM_TERMS; j++)
         {
             y_pred += coefficients[j] * x[i][j];
         }
@@ -261,13 +321,22 @@ double polynomial_regression_train_and_test_fast(double data[SAMPLE_SIZE][DATASE
     rmse = sqrt(rmse / sample_size);
 
     // Free memory allocated for arrays
+    for (int i = 0; i < sample_size; i++)
+    {
+        free(x[i]);
+    }
+
     free(x);
-    free(x_mem);
     free(y);
+
+    for (int i = 0; i < NUM_TERMS; i++)
+    {
+        free(x_transpose[i]);
+        free(x_transpose_x[i]);
+    }
+
     free(x_transpose);
-    free(x_transpose_mem);
     free(x_transpose_x);
-    free(x_transpose_x_mem);
     free(x_transpose_y);
     free(coefficients);
 

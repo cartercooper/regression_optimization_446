@@ -12,7 +12,7 @@ num_features=$2
 poly_degree=$3
 
 # Write the output to def.h
-echo "#define SAMPLE_SIZE 5000" > src/def.h
+echo "#define SAMPLE_SIZE 250" > src/def.h
 echo "#define DATASET $dataset_name" >> src/def.h
 echo "#define DATASET_FEATURES $num_features" >> src/def.h
 echo "#define POLY_DEGREE $poly_degree" >> src/def.h

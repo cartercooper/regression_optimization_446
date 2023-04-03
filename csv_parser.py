@@ -4,14 +4,13 @@ import pandas as pd
 DATA = "delhi"
 #https://www.kaggle.com/datasets/mahirkukreja/delhi-weather-data
 
-# DATA = "turbine"
+DATA = "turbine"
 #https://www.kaggle.com/datasets/theforcecoder/wind-power-forecasting
 
 
 raw_data = pd.read_csv("data/"+ DATA +".csv", header=None).tail(5000)
 
 cols = len(raw_data.columns)
-rows = 10000
 
 f = open("data/"+ DATA +".h", "w")
 
