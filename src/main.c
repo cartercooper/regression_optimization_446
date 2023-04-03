@@ -235,40 +235,31 @@ double polynomial_regression_train_and_test_optimized(double data[SAMPLE_SIZE][D
     double **x_transpose_x = malloc(NUM_TERMS * sizeof(double *));
     double *x_transpose_y = malloc(NUM_TERMS * sizeof(double));
 
-    // Compute x transpose matrix and x transpose times x matrix
     for (int i = 0; i < NUM_TERMS; i++)
     {
         x_transpose[i] = malloc(sample_size * sizeof(double));
         x_transpose_x[i] = malloc(NUM_TERMS * sizeof(double));
+        double sum_y = 0;
 
-        // Compute x transpose matrix
         for (int j = 0; j < sample_size; j++)
         {
             x_transpose[i][j] = x[j][i];
+            sum_y += x_transpose[i][j] * y[j];
         }
 
-        // Compute x transpose times x matrix
+        x_transpose_y[i] = sum_y;
+
         for (int j = 0; j < NUM_TERMS; j++)
         {
-            double sum = 0;
+            double sum_x = 0;
 
             for (int k = 0; k < sample_size; k++)
             {
-                sum += x_transpose[i][k] * x[k][j];
+                sum_x += x_transpose[i][k] * x[k][j];
             }
 
-            x_transpose_x[i][j] = sum;
+            x_transpose_x[i][j] = sum_x;
         }
-
-        // Compute x transpose times y matrix
-        double sum = 0;
-
-        for (int j = 0; j < sample_size; j++)
-        {
-            sum += x_transpose[i][j] * y[j];
-        }
-
-        x_transpose_y[i] = sum;
     }
 
     // Allocate memory for coefficients
